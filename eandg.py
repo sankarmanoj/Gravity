@@ -1,7 +1,5 @@
 import pygame
 from math import *
-import numpy as np
-import scipy as sp
 from random import *
 SCREEN_WIDTH, SCREEN_HEIGHT = 600,600
 BG_COLOR = 150, 150, 80
@@ -13,13 +11,14 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pygame.time.Clock()
 ms = []
 debug = False
+num = 10
 class mass:
 	def __init__(self,x,y,vx,vy,mass,radius,charge):
 		self.m = mass
 		self.x = x
 		if charge =="+":
 			self.charge = 1
-			self.m = 5
+			self.m = 10
 		elif charge =="-":
 			self.charge = -1
 			self.m = 1
@@ -72,7 +71,7 @@ if debug == True:
 	ms.append(mass(200,300,0,-0.2,1,3,"+"))
 	num =2 
 else :
-	num = 10
+	
 	for i in range(0,num/2):
 			ms.append(mass(randint(0,SCREEN_WIDTH),randint(0,SCREEN_HEIGHT),0,0,1,3,"-"))
 
