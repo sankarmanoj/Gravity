@@ -1,4 +1,4 @@
-Gravity
+Forcesimulation
 =======
 EandG : 
 Each factor decides the strength of a force
