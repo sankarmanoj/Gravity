@@ -13,3 +13,4 @@ Code that impliments gravitational interaction between non-charged particles.
 factor corrosponds to the 'strenght' of the gravitational pull.
 num refers to the number of interacting particles.
 Pygame is used to simulate display in real time.
+Clumping of masses is implimented if the masses come closer than a specified distance.
