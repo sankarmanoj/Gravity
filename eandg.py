@@ -4,16 +4,16 @@ from random import *
 SCREEN_WIDTH, SCREEN_HEIGHT = 600,600
 BG_COLOR = 150, 150, 80
 pygame.init()
-fg = 0.1
-damp = 0.0009
-fe = 200
+fg = 0.1 #fg = 0.1 for nice clumping. At 1, clumps into large mass
+damp = 0.001
+fe = 100
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pygame.time.Clock()
 ms = []
 debug = False
-frame_rate = 50
-critical_factor = 0.08
-num = 10
+frame_rate = 30
+critical_factor = 0.008
+num = 50
 class mass:
 	def __init__(self,x,y,vx,vy,radius,charge):
 		self.x = x
@@ -49,7 +49,7 @@ class mass:
 			self.vy+=fys
 			other.vx+=fxo
 			other.vy+=fyo
-		elif r>5 :
+		elif r>3 :
 			self.vx+=fxs*critical_factor*r**2
 			self.vy+=fys*critical_factor*r**2
 			other.vx+=fxo*critical_factor*r**2
@@ -58,7 +58,7 @@ class mass:
 			self.vy -= damp*(self.vy-other.vy)*abs(self.vy)*abs(self.charge-other.charge)*abs(self.y-other.y)
 			other.vx -=damp*(other.vx-self.vx)*abs(other.vx)*abs(self.charge-other.charge)*abs(self.x-other.x)
 			other.vy -=damp*(other.vy-self.vy)*abs(other.vy)*abs(self.charge-other.charge)*abs(self.y-other.y)
-	def update(self):
+	def update(self):	
 		self.x +=self.vx
 		#print self.vx
 		self.y +=self.vy
