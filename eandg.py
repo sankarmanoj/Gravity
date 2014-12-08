@@ -4,17 +4,18 @@ from random import *
 SCREEN_WIDTH, SCREEN_HEIGHT = 600,600
 BG_COLOR = 150, 150, 80
 pygame.init()
-fg = 2
+fg = 0
 damp = 0.0001
 fe = 100
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pygame.time.Clock()
 ms = []
 debug = False
+frame_rate = 50
+critical_factor = 0.001
 num = 10
 class mass:
-	def __init__(self,x,y,vx,vy,mass,radius,charge):
-		self.m = mass
+	def __init__(self,x,y,vx,vy,radius,charge):
 		self.x = x
 		if charge =="+":
 			self.charge = 1
@@ -43,16 +44,16 @@ class mass:
 		fys = -(fg*self.m*other.m-self.charge*other.charge*fe)*dy/(r**3*self.m)
 		fxo	=(fg*self.m*other.m-self.charge*other.charge*fe)*dx/(r**3*other.m)
 		fyo=(fg*self.m*other.m-self.charge*other.charge*fe)*dy/(r**3*other.m)
-		if r>(20):
+		if r>(10):
 			self.vx+=fxs
 			self.vy+=fys
 			other.vx+=fxo
 			other.vy+=fyo
-		elif r>1 :
-			self.vx+=fxs*0.05*r
-			self.vy+=fys*0.05*r
-			other.vx+=fxo*0.05*r
-			other.vy+=fyo*0.05*r
+		elif r>5 :
+			self.vx+=fxs*critical_factor*r**2
+			self.vy+=fys*critical_factor*r**2
+			other.vx+=fxo*critical_factor*r**2
+			other.vy+=fyo*critical_factor*r**2	
 			self.vx -= damp*(self.vx-other.vx)*abs(self.vx)*abs(self.charge-other.charge)*abs(self.x-other.x)
 			self.vy -= damp*(self.vy-other.vy)*abs(self.vy)*abs(self.charge-other.charge)*abs(self.y-other.y)
 			other.vx -=damp*(other.vx-self.vx)*abs(other.vx)*abs(self.charge-other.charge)*abs(self.x-other.x)
@@ -67,20 +68,21 @@ class mass:
 			self.vy=(-self.vy)
 		self.draw()
 if debug == True:
-	ms.append(mass(400,300,0,0.2,1,3,"-"))
-	ms.append(mass(200,300,0,-0.2,1,3,"+"))
+	ms.append(mass(400,300,-1.2,0.9,3,"-"))
+	ms.append(mass(200,300,0,0,3,"+"))
 	num =2 
+	frame_rate=1000
 else :
 	
 	for i in range(0,num/2):
-			ms.append(mass(randint(0,SCREEN_WIDTH),randint(0,SCREEN_HEIGHT),0,0,1,3,"-"))
+			ms.append(mass(randint(0,SCREEN_WIDTH),randint(0,SCREEN_HEIGHT),0,0,3,"-"))
 
 	for i in range(num/2,num):
-			ms.append(mass(randint(0,SCREEN_WIDTH),randint(0,SCREEN_HEIGHT),0,0,1,3,"+"))
+			ms.append(mass(randint(0,SCREEN_WIDTH),randint(0,SCREEN_HEIGHT),0,0,3,"+"))
 
 	
 while True:
-	time_passed = clock.tick(50)
+	time_passed = clock.tick(frame_rate)
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			exit_game()
@@ -106,7 +108,7 @@ while True:
 		except:
 			pass
 			
-	pygame.draw.circle(screen,(0,0,0),(int(px/tm),int(py/tm)),4,0)
+	pygame.draw.circle(screen,(0,0,0),(int(px/tm),int(py/tm)),1,0)
 	pygame.display.update()
 	if pygame.key.get_focused():
 		press = pygame.key.get_pressed()
