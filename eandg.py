@@ -4,15 +4,15 @@ from random import *
 SCREEN_WIDTH, SCREEN_HEIGHT = 600,600
 BG_COLOR = 150, 150, 80
 pygame.init()
-fg = 0
-damp = 0.0001
-fe = 100
+fg = 0.1
+damp = 0.0009
+fe = 200
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32)
 clock = pygame.time.Clock()
 ms = []
 debug = False
 frame_rate = 50
-critical_factor = 0.001
+critical_factor = 0.08
 num = 10
 class mass:
 	def __init__(self,x,y,vx,vy,radius,charge):
