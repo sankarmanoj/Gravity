@@ -13,10 +13,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-
+#include "simCuda.h"
+int numberParticles = 480;
 //Init Camera
-Camera camera(glm::vec3(0.0f,0.0f,0.0f));
+Camera camera(glm::vec3(0.0f,0.0f,10.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
@@ -30,7 +30,11 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void Do_Movement();
-
+GLuint genCircleTexture();
+GLfloat rFloat(GLuint Max)
+{
+   return (GLfloat)(((float)rand()/(float)RAND_MAX)*(float)Max);
+}
 // The MAIN function, from here we start the application and run the game loop
 int main()
 {
@@ -51,7 +55,7 @@ int main()
     glfwSetKeyCallback(window, key_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
     glewExperimental = GL_TRUE;
@@ -62,37 +66,81 @@ int main()
     glViewport(0, 0, WIDTH, HEIGHT);
 
     glEnable(GL_DEPTH_TEST);
-
+    //Enable Point Drawing
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     // Build and compile our shader program
     Shader ourShader("default.vs", "default.frag");
-
-
-    // Set up vertex data (and buffer(s)) and attribute pointers
-    GLfloat vertices[] = {
-        // Positions         // Colors
-        0.5f, -0.5f, -2.0f,   1.0f, 0.0f, 0.0f,  // Bottom Right
-       -0.5f, -0.5f, -2.0f,   0.0f, 1.0f, 0.0f,  // Bottom Left
-        0.0f,  0.5f, -2.0f,   0.0f, 0.0f, 1.0f   // Top
-    };
+    GLfloat *particles =(GLfloat *)malloc(sizeof(GLfloat)*numberParticles*8);
+    for(int i =0; i< numberParticles; i++)
+    {
+      particles[8*i]=5.0f-rFloat(10);
+      particles[8*i+1]=5.0f-rFloat(10);
+      particles[8*i+2]=-5.0f+rFloat(3);
+      particles[8*i+3]=0.0f;
+      particles[8*i+4]=0.0f;
+      particles[8*i+5]=0.0f;
+      if(i>numberParticles/2)
+      {
+      particles[8*i+6]=4.0f;
+      particles[8*i+7]=1.0f;
+      }
+      else
+      {
+        particles[8*i+6]=2.0f;
+        particles[8*i+7]=-1.0f;
+      }
+    }
+    for(int i = 0; i<numberParticles*8;i++)
+    {
+      std::cout<<sizeof(particles)<<"   "<<particles[i]<<"   "<<i<<std::endl;
+    }
+    // X    Y   Z   VX    VY    VZ    Mass    Charge
+    // 0    1   2   3     4     5     6       7
     GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
+    glGenVertexArrays(1,&VAO);
+    glGenBuffers(1,&VBO);
     glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO);
+    glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STATIC_DRAW);
+    //Position Attributes
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
-    // Color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    //Mass Atrribute
+    glVertexAttribPointer(1,1,GL_FLOAT,GL_FALSE,8*sizeof(GLfloat),(GLvoid *)(6*sizeof(GLfloat)));
     glEnableVertexAttribArray(1);
+    //Charge Attribute
+    glVertexAttribPointer(2,1,GL_FLOAT,GL_FALSE,8*sizeof(GLfloat),(GLvoid *)(7*sizeof(GLfloat)));
+    glEnableVertexAttribArray(2);
 
-    glBindVertexArray(0); // Unbind VAO
-    // Game loop
+    glBindVertexArray(0);
+
+  //  Set up vertex data (and buffer(s)) and attribute pointers
+    // GLfloat vertices[] = {
+    //     // Positions         // Colors
+    //     0.5f, -0.5f, -2.0f,   1.0f, 0.0f, 0.0f,  // Bottom Right
+    //    -0.5f, -0.5f, -2.0f,   0.0f, 1.0f, 0.0f,  // Bottom Left
+    //     0.0f,  0.5f, -2.0f,   0.0f, 0.0f, 1.0f   // Top
+    // };
+    // GLuint VBO, VAO;
+    // glGenVertexArrays(1, &VAO);
+    // glGenBuffers(1, &VBO);
+    // // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
+    // glBindVertexArray(VAO);
+    //
+    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    //
+    // // Position attribute
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    // glEnableVertexAttribArray(0);
+    // // Color attribute
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    // glEnableVertexAttribArray(1);
+    //
+    // glBindVertexArray(0); // Unbind VAO
+    // //Game loop
+    GLuint texture = genCircleTexture();
     while (!glfwWindowShouldClose(window))
     {
         // Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -103,7 +151,7 @@ int main()
         Do_Movement();
         // Render
         // Clear the colorbuffer
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
         // Draw the triangle
@@ -117,15 +165,17 @@ int main()
         GLint projLoc = glGetUniformLocation(ourShader.Program, "projection");
         glUniformMatrix4fv(viewLoc,1,GL_FALSE,glm::value_ptr(view));
         glUniformMatrix4fv(projLoc,1,GL_FALSE,glm::value_ptr(projection));
+        glBindTexture(GL_TEXTURE_2D,texture);
         glBindVertexArray(VAO);
-        model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
+        //model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_POINTS , 0, numberParticles);
         glBindVertexArray(0);
 
         // Swap the screen buffers
         glfwSwapBuffers(window);
+        particles=calcAndUpdate(particles,numberParticles);
     }
     // Properly de-allocate all resources once they've outlived their purpose
     glDeleteVertexArrays(1, &VAO);
@@ -134,7 +184,47 @@ int main()
     glfwTerminate();
     return 0;
 }
+GLuint genCircleTexture()
+{
+  GLuint texture_name;
+  const GLint texWidth = 256;
+    const GLint texHeight = 256;
+    const float texHalfWidth = 128.0f;
+    const float texHalfHeight = 128.0f;
+    printf("INIT: \n");
 
+    unsigned char* pData = new unsigned char[texWidth*texHeight*4];
+    for(int y=0; y<texHeight; ++y){
+        for(int x=0; x<texWidth; ++x){
+            int offs = (x + y*texWidth) * 4;
+            float xoffs = ((float)x - texHalfWidth) / texHalfWidth;
+            float yoffs = ((float)y - texHalfWidth) / texHalfHeight;
+            float alpha = 1.0f - std::sqrt(xoffs*xoffs + yoffs*yoffs);
+            if(alpha < 0.0f)
+                alpha = 0.0f;
+            pData[offs + 0] = 255; //r
+            pData[offs + 1] = 0; //g
+            pData[offs + 2] = 0; //b
+            pData[offs + 3] = 255.0f * alpha; // *
+            //printf("alpha: %f\n", pData[x + y*texWidth + 3]);
+        }
+    }
+
+    glGenTextures(1, &texture_name);
+    glActiveTexture(GL_TEXTURE0);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, texture_name);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, pData);
+    glEnable(GL_POINT_SPRITE);
+    glTexEnvi(GL_POINT_SPRITE, GL_COORD_REPLACE, GL_TRUE);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D,0);
+    return texture_name;
+}
 // Moves/alters the camera positions based on user input
 void Do_Movement()
 {
