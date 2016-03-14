@@ -1,13 +1,19 @@
 CC=g++
 FRAMEWORK = OpenGL
-OUTPUT = run
+OUTPUT = myrun
+CUDAOUT = simCuda.o
+LDFLAGS=-Wl,-rpath,/usr/local/cuda/lib
 all:  cuda build
 
-run: all
-	./$(OUTPUT)
+run: cuda build
+	export LD_LIBRARY_PATH=/usr/local/cuda/lib:$(LD_LIBRARY_PATH)
+	exec ./$(OUTPUT)
 
 build :
-		$(CC) sim.cpp   -L/usr/local/cuda/lib -L.   -l glfw3 -l GLEW -framework $(FRAMEWORK)   -o $(OUTPUT)
+		$(CC) $(CUDAOUT)  sim.cpp  $(LDFLAGS) -L/usr/local/cuda/lib -l cuda  -l cudart -l glfw3 -l GLEW -framework $(FRAMEWORK) -o $(OUTPUT)
 
 cuda :
-	nvcc  -c -Xcompiler -fPIC -shared -G simCuda.cu -o libcudasim.so
+	nvcc -c simCuda.cu -o $(CUDAOUT)
+clean :
+	rm simCuda.o
+	rm $(OUTPUT)

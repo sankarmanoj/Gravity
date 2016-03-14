@@ -14,9 +14,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "simCuda.h"
-int numberParticles = 480;
+int numberParticles = 100;
 //Init Camera
-Camera camera(glm::vec3(0.0f,0.0f,10.0f));
+Camera camera(glm::vec3(0.0f,0.0f,100.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
@@ -72,6 +72,7 @@ int main()
     // Build and compile our shader program
     Shader ourShader("default.vs", "default.frag");
     GLfloat *particles =(GLfloat *)malloc(sizeof(GLfloat)*numberParticles*8);
+    printf("size = %lu",sizeof(GLfloat)*numberParticles*8);
     for(int i =0; i< numberParticles; i++)
     {
       particles[8*i]=5.0f-rFloat(10);
@@ -91,18 +92,24 @@ int main()
         particles[8*i+7]=-1.0f;
       }
     }
-    for(int i = 0; i<numberParticles*8;i++)
-    {
-      std::cout<<sizeof(particles)<<"   "<<particles[i]<<"   "<<i<<std::endl;
-    }
+    // for(int i = 0; i<numberParticles*8;i++)
+    // {
+    //   std::cout<<sizeof(particles)<<"   "<<particles[i]<<"   "<<i<<std::endl;
+    // }
     // X    Y   Z   VX    VY    VZ    Mass    Charge
     // 0    1   2   3     4     5     6       7
-    GLuint VBO, VAO;
+    for (int i =0; i<8*numberParticles; i++)
+    {
+      std::cout<<particles[i]<<":";
+      if((i+1)%8==0)
+      std::cout<<std::endl;
+    }
+        GLuint VBO, VAO;
     glGenVertexArrays(1,&VAO);
     glGenBuffers(1,&VBO);
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER,VBO);
-    glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STREAM_DRAW);
     //Position Attributes
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,8*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
@@ -141,10 +148,12 @@ int main()
     // glBindVertexArray(0); // Unbind VAO
     // //Game loop
     GLuint texture = genCircleTexture();
+    int count = 0;
     while (!glfwWindowShouldClose(window))
     {
         // Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
         GLfloat currentFrame = glfwGetTime();
+
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         glfwPollEvents();
@@ -165,17 +174,27 @@ int main()
         GLint projLoc = glGetUniformLocation(ourShader.Program, "projection");
         glUniformMatrix4fv(viewLoc,1,GL_FALSE,glm::value_ptr(view));
         glUniformMatrix4fv(projLoc,1,GL_FALSE,glm::value_ptr(projection));
-        glBindTexture(GL_TEXTURE_2D,texture);
+        glBindBuffer(GL_ARRAY_BUFFER,VBO);
         glBindVertexArray(VAO);
         //model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-
+        particles=calcAndUpdate(particles,numberParticles);
+        for (int i =0; i<8*numberParticles; i++)
+        {
+          std::cout<<particles[i]<<":";
+          if((i+1)%8==0)
+          std::cout<<std::endl;
+        }
+        std::cout<<"Done with try "<<count<<std::endl;
+        glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STREAM_DRAW);
         glDrawArrays(GL_POINTS , 0, numberParticles);
         glBindVertexArray(0);
-
+        glBindBuffer(GL_ARRAY_BUFFER,0);
         // Swap the screen buffers
         glfwSwapBuffers(window);
-        particles=calcAndUpdate(particles,numberParticles);
+        count++;
+        
+
     }
     // Properly de-allocate all resources once they've outlived their purpose
     glDeleteVertexArrays(1, &VAO);

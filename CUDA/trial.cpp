@@ -9,7 +9,3 @@ float * calcAndUpdate(float * input, int size)
 {
   return input;
 }
-int main()
-{
-  return hello();
-}

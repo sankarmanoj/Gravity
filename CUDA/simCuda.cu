@@ -1,7 +1,7 @@
 #include<stdio.h>
 #include<math.h>
-#define fg 0.1
-#define fe 100
+#define fg 0.000001
+#define fe 0.001
 #define damp 0.01
 #define critical_factor  0.008
 #define SCREEN_WIDTH 600
@@ -36,10 +36,8 @@ __global__ void myop( float * d_output, float *d_input,int size)
     float dy = my[1]-other[1];
     float dz = my[2]-other[2];
     float r = sqrtf(dx*dx+dy*dy+dz*dz);
-    if(r<3)
+    if(r>5)
     {
-      continue;
-    }
     float fx =-(fg*my[6]*other[6]-fe*my[7]*other[7])*dx;
     fx=fx/(r*r*r);
     float fy =-(fg*my[6]*other[6]-fe*my[7]*other[7])*dy;
@@ -56,15 +54,16 @@ __global__ void myop( float * d_output, float *d_input,int size)
     }
     else if(r>3)
     {
-      my[3]-=fx*critical_factor*r*r;
-      my[4]-=fy*critical_factor*r*r;
-      my[5]-=fz*critical_factor*r*r;
-
-
-      my[3]-=damp*(my[3]-other[3])*abs(my[2])*abs(my[7]-other[7])*abs(my[0]-other[0]);
-      my[4]-=damp*(my[4]-other[4])*abs(my[3])*abs(my[7]-other[7])*abs(my[1]-other[1]);
-      my[5]-=damp*(my[5]-other[5])*abs(my[3])*abs(my[7]-other[7])*abs(my[2]-other[2]);
+      // my[3]-=fx*critical_factor*r*r;
+      // my[4]-=fy*critical_factor*r*r;
+      // my[5]-=fz*critical_factor*r*r;
+      //
+      //
+      // my[3]-=damp*(my[3]-other[3])*abs(my[2])*abs(my[7]-other[7])*abs(my[0]-other[0]);
+      // my[4]-=damp*(my[4]-other[4])*abs(my[3])*abs(my[7]-other[7])*abs(my[1]-other[1]);
+      // my[5]-=damp*(my[5]-other[5])*abs(my[3])*abs(my[7]-other[7])*abs(my[2]-other[2]);
     }
+  }
 
   }
   buffer[8*id+3]=my[3];
@@ -78,21 +77,23 @@ __global__ void myop( float * d_output, float *d_input,int size)
   {
     d_output[8*id+i]=buffer[8*id+i];
   }
+
 }
-extern "C"{float * calcAndUpdate(float * input, int size)
+float * calcAndUpdate(float * input, int size)
 {
   float * d_input, * d_output;
-  float *result = (float *)malloc((size*6+2)*sizeof(float));
+  float *result = (float *)malloc((size*8)*sizeof(float));
   if(size>500)
   {
     return 0;
 
   }
-  cudaMalloc(&d_input,(size*6)*sizeof(float));
-  cudaMalloc(&d_output,(size*6)*sizeof(float));
-  cudaMemcpy(d_input,input,(size*6)*sizeof(float),cudaMemcpyHostToDevice);
+  cudaMalloc(&d_input,(size*8)*sizeof(float));
+  cudaMalloc(&d_output,(size*8)*sizeof(float));
+  printf("cuda Size = %lu",(size*8)*sizeof(float));
+  cudaMemcpy(d_input,input,(size*8)*sizeof(float),cudaMemcpyHostToDevice);
   myop<<<1,size>>>(d_output,d_input,size);
-  cudaMemcpy(result,d_output,(size*6)*sizeof(float),cudaMemcpyDeviceToHost);
+  cudaMemcpy(result,d_output,(size*8)*sizeof(float),cudaMemcpyDeviceToHost);
   // for(int i = 0; i< 6*size; i++)
   // {
   //   printf("%f \t",result[i]);
@@ -102,10 +103,5 @@ extern "C"{float * calcAndUpdate(float * input, int size)
   //   }
   // }
   return result;
-
-}}
-
-int main()
-{
 
 }
