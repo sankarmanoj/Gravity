@@ -16,11 +16,11 @@
 #include "simCuda.h"
 int numberParticles = 1023;
 //Init Camera
-Camera camera(glm::vec3(0.0f,0.0f,5.0f));
+Camera camera(glm::vec3(0.0f,0.0f,25.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
-
+bool paused = false;
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 // Window dimensions
@@ -77,18 +77,18 @@ int main()
     {
       particles[8*i]=5.0f-rFloat(10);
       particles[8*i+1]=5.0f-rFloat(10);
-      particles[8*i+2]=-5.0f+rFloat(3);
+      particles[8*i+2]=-5.0f-rFloat(2.0);
       particles[8*i+3]=0.0f;
       particles[8*i+4]=0.0f;
       particles[8*i+5]=0.0f;
       if(i>=numberParticles/2)
       {
-      particles[8*i+6]=5.0f;
+      particles[8*i+6]=4.0f;
       particles[8*i+7]=1.0f;
       }
       else
       {
-        particles[8*i+6]=5.0f;
+        particles[8*i+6]=2.0f;
         particles[8*i+7]=-1.0f;
       }
     }
@@ -157,10 +157,11 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
         glfwPollEvents();
+
         Do_Movement();
         // Render
         // Clear the colorbuffer
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
         // Draw the triangle
@@ -178,7 +179,16 @@ int main()
         glBindVertexArray(VAO);
         //model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
+        if(!paused)
         particles=calcAndUpdate(particles,numberParticles);
+        // particles[0]=0;
+        // particles[1]=0;
+        // particles[2]=0.0;
+        // particles[3]=0.0f;
+        // particles[4]=0.0f;
+        // particles[5]=0.0f;
+        // particles[6]=5000.0f;
+        // particles[7]=1.0f;
         #ifdef DEBUG
         for (int i =0; i<8*numberParticles; i++)
         {
@@ -266,6 +276,10 @@ void Do_Movement()
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
   //  std::cout << key << std::endl;
+   if(key=='P')
+   paused=true;
+   else if (key=='U')
+   paused = false;
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
     if (key >= 0 && key < 1024)
