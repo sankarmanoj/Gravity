@@ -14,9 +14,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "simCuda.h"
-int numberParticles = 100;
+int numberParticles = 1023;
 //Init Camera
-Camera camera(glm::vec3(0.0f,0.0f,100.0f));
+Camera camera(glm::vec3(0.0f,0.0f,5.0f));
 bool keys[1024];
 GLfloat lastX = 400, lastY = 300;
 bool firstMouse = true;
@@ -24,7 +24,7 @@ bool firstMouse = true;
 GLfloat deltaTime = 0.0f;
 GLfloat lastFrame = 0.0f;
 // Window dimensions
-const GLuint WIDTH = 800, HEIGHT = 600;
+const GLuint WIDTH = 1900, HEIGHT = 1000;
 //Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -81,14 +81,14 @@ int main()
       particles[8*i+3]=0.0f;
       particles[8*i+4]=0.0f;
       particles[8*i+5]=0.0f;
-      if(i>numberParticles/2)
+      if(i>=numberParticles/2)
       {
-      particles[8*i+6]=4.0f;
+      particles[8*i+6]=5.0f;
       particles[8*i+7]=1.0f;
       }
       else
       {
-        particles[8*i+6]=2.0f;
+        particles[8*i+6]=5.0f;
         particles[8*i+7]=-1.0f;
       }
     }
@@ -179,6 +179,7 @@ int main()
         //model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
         particles=calcAndUpdate(particles,numberParticles);
+        #ifdef DEBUG
         for (int i =0; i<8*numberParticles; i++)
         {
           std::cout<<particles[i]<<":";
@@ -186,6 +187,7 @@ int main()
           std::cout<<std::endl;
         }
         std::cout<<"Done with try "<<count<<std::endl;
+        #endif
         glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STREAM_DRAW);
         glDrawArrays(GL_POINTS , 0, numberParticles);
         glBindVertexArray(0);
@@ -193,7 +195,7 @@ int main()
         // Swap the screen buffers
         glfwSwapBuffers(window);
         count++;
-        
+
 
     }
     // Properly de-allocate all resources once they've outlived their purpose

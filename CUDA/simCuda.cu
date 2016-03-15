@@ -1,12 +1,12 @@
 #include<stdio.h>
 #include<math.h>
-#define fg 0.000001
+#define fg 0.00001
 #define fe 0.001
-#define damp 0.01
-#define critical_factor  0.008
+#define damp 0.000001
+#define critical_factor  0
 #define SCREEN_WIDTH 600
 #define SCREEN_HEIGHT 600
-const int MAX_SIZE = 500;
+const int MAX_SIZE = 1023;
 // [self.x,self.y,self.z,self.vx,self.vy,self.vz,self.m,self.charge]
 //    0     1       2       3       4       5     6         7
 __global__ void myop( float * d_output, float *d_input,int size)
@@ -36,8 +36,7 @@ __global__ void myop( float * d_output, float *d_input,int size)
     float dy = my[1]-other[1];
     float dz = my[2]-other[2];
     float r = sqrtf(dx*dx+dy*dy+dz*dz);
-    if(r>5)
-    {
+
     float fx =-(fg*my[6]*other[6]-fe*my[7]*other[7])*dx;
     fx=fx/(r*r*r);
     float fy =-(fg*my[6]*other[6]-fe*my[7]*other[7])*dy;
@@ -46,26 +45,29 @@ __global__ void myop( float * d_output, float *d_input,int size)
     fz=fz/(r*r*r);
     if(fx!=fx || fy!=fy||isnan(fy))
     continue;
-    if(r>10)
+    if(r>1)
     {
       my[3]+=(fx/my[6]);
       my[4]+=(fy/my[6]);
       my[5]+=(fz/my[6]);
     }
-    else if(r>3)
+    else if(r<0.1f)
     {
-      // my[3]-=fx*critical_factor*r*r;
-      // my[4]-=fy*critical_factor*r*r;
-      // my[5]-=fz*critical_factor*r*r;
-      //
-      //
-      // my[3]-=damp*(my[3]-other[3])*abs(my[2])*abs(my[7]-other[7])*abs(my[0]-other[0]);
-      // my[4]-=damp*(my[4]-other[4])*abs(my[3])*abs(my[7]-other[7])*abs(my[1]-other[1]);
-      // my[5]-=damp*(my[5]-other[5])*abs(my[3])*abs(my[7]-other[7])*abs(my[2]-other[2]);
+    my[3]-=(my[3]-other[3])*damp;
+    my[4]-=(my[4]-other[4])*damp;
+    my[5]-=(my[5]-other[5])*damp;
+    }
+    else{
+      my[3]+=(fx/my[6]);
+      my[4]+=(fy/my[6]);
+      my[5]+=(fz/my[6]);
+      my[3]-=(my[3]-other[3])*damp;
+      my[4]-=(my[4]-other[4])*damp;
+      my[5]-=(my[5]-other[5])*damp;
     }
   }
 
-  }
+
   buffer[8*id+3]=my[3];
   buffer[8*id+4]=my[4];
   buffer[8*id+5]=my[5];
@@ -83,14 +85,14 @@ float * calcAndUpdate(float * input, int size)
 {
   float * d_input, * d_output;
   float *result = (float *)malloc((size*8)*sizeof(float));
-  if(size>500)
+  if(size>MAX_SIZE)
   {
     return 0;
 
   }
   cudaMalloc(&d_input,(size*8)*sizeof(float));
   cudaMalloc(&d_output,(size*8)*sizeof(float));
-  printf("cuda Size = %lu",(size*8)*sizeof(float));
+//  printf("cuda Size = %lu",(size*8)*sizeof(float));
   cudaMemcpy(d_input,input,(size*8)*sizeof(float),cudaMemcpyHostToDevice);
   myop<<<1,size>>>(d_output,d_input,size);
   cudaMemcpy(result,d_output,(size*8)*sizeof(float),cudaMemcpyDeviceToHost);
