@@ -7,14 +7,21 @@
 // GLFW
 #include <GLFW/glfw3.h>
 
+// #define DEBUG
 // Other includes
 #include "Shader.h"
 #include "Camera.h"
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+//For usleep
 #include "simCuda.h"
-int numberParticles = 1023;
+#include <unistd.h>
+#include<time.h>
+int frameRate = 4005;
+int debugCount = 40;
+int debugPrintCount = 4;
+int numberParticles = 1024*10;
 //Init Camera
 Camera camera(glm::vec3(0.0f,0.0f,25.0f));
 bool keys[1024];
@@ -38,6 +45,9 @@ GLfloat rFloat(GLuint Max)
 // The MAIN function, from here we start the application and run the game loop
 int main()
 {
+    //Seed Random Number Generator Function
+    srand (time(NULL));
+
     // Init GLFW
     glfwInit();
     // Set all the required options for GLFW
@@ -46,7 +56,6 @@ int main()
     glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
     // Create a GLFWwindow object that we can use for GLFW's functions
     GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
     glfwMakeContextCurrent(window);
@@ -72,12 +81,11 @@ int main()
     // Build and compile our shader program
     Shader ourShader("default.vs", "default.frag");
     GLfloat *particles =(GLfloat *)malloc(sizeof(GLfloat)*numberParticles*8);
-    printf("size = %lu",sizeof(GLfloat)*numberParticles*8);
     for(int i =0; i< numberParticles; i++)
     {
-      particles[8*i]=5.0f-rFloat(10);
-      particles[8*i+1]=5.0f-rFloat(10);
-      particles[8*i+2]=-5.0f-rFloat(2.0);
+      particles[8*i]=8.0f-rFloat(16);
+      particles[8*i+1]=8.0f-rFloat(16);
+      particles[8*i+2]=-3.0f-rFloat(3.0);
       particles[8*i+3]=0.0f;
       particles[8*i+4]=0.0f;
       particles[8*i+5]=0.0f;
@@ -98,12 +106,12 @@ int main()
     // }
     // X    Y   Z   VX    VY    VZ    Mass    Charge
     // 0    1   2   3     4     5     6       7
-    for (int i =0; i<8*numberParticles; i++)
-    {
-      std::cout<<particles[i]<<":";
-      if((i+1)%8==0)
-      std::cout<<std::endl;
-    }
+    // for (int i =0; i<8*numberParticles; i++)
+    // {
+    //   std::cout<<particles[i]<<":";
+    //   if((i+1)%8==0)
+    //   std::cout<<std::endl;
+    // }
         GLuint VBO, VAO;
     glGenVertexArrays(1,&VAO);
     glGenBuffers(1,&VBO);
@@ -122,32 +130,7 @@ int main()
 
     glBindVertexArray(0);
 
-  //  Set up vertex data (and buffer(s)) and attribute pointers
-    // GLfloat vertices[] = {
-    //     // Positions         // Colors
-    //     0.5f, -0.5f, -2.0f,   1.0f, 0.0f, 0.0f,  // Bottom Right
-    //    -0.5f, -0.5f, -2.0f,   0.0f, 1.0f, 0.0f,  // Bottom Left
-    //     0.0f,  0.5f, -2.0f,   0.0f, 0.0f, 1.0f   // Top
-    // };
-    // GLuint VBO, VAO;
-    // glGenVertexArrays(1, &VAO);
-    // glGenBuffers(1, &VBO);
-    // // Bind the Vertex Array Object first, then bind and set vertex buffer(s) and attribute pointer(s).
-    // glBindVertexArray(VAO);
-    //
-    // glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    //
-    // // Position attribute
-    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
-    // glEnableVertexAttribArray(0);
-    // // Color attribute
-    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    // glEnableVertexAttribArray(1);
-    //
-    // glBindVertexArray(0); // Unbind VAO
-    // //Game loop
-    GLuint texture = genCircleTexture();
+
     int count = 0;
     while (!glfwWindowShouldClose(window))
     {
@@ -156,9 +139,12 @@ int main()
 
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+      //  usleep(1000*(1000/frameRate-deltaTime));
         glfwPollEvents();
 
+
         Do_Movement();
+      //  usleep(1000*20);
         // Render
         // Clear the colorbuffer
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -179,8 +165,6 @@ int main()
         glBindVertexArray(VAO);
         //model = glm::rotate(model,(GLfloat)glfwGetTime()*20.0f,glm::vec3(0.0f,0.0f,1.0f));
         glUniformMatrix4fv(modelLoc,1,GL_FALSE,glm::value_ptr(model));
-        if(!paused)
-        particles=calcAndUpdate(particles,numberParticles);
         // particles[0]=0;
         // particles[1]=0;
         // particles[2]=0.0;
@@ -190,14 +174,18 @@ int main()
         // particles[6]=5000.0f;
         // particles[7]=1.0f;
         #ifdef DEBUG
-        for (int i =0; i<8*numberParticles; i++)
+        for (int i =0; i<8*debugPrintCount; i++)
         {
           std::cout<<particles[i]<<":";
           if((i+1)%8==0)
           std::cout<<std::endl;
         }
         std::cout<<"Done with try "<<count<<std::endl;
+        if(count==debugCount)
+        break;
         #endif
+        if(!paused)
+        particles=calcAndUpdate(particles,numberParticles);
         glBufferData(GL_ARRAY_BUFFER,8*numberParticles*sizeof(GLfloat),particles,GL_STREAM_DRAW);
         glDrawArrays(GL_POINTS , 0, numberParticles);
         glBindVertexArray(0);
